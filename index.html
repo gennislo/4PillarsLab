@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>八字命理溫習神器 v5.4</title>
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --secondary: #166088;
+            --accent: #4fa3a5;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #222222;
+            --correct: #2e7d32;
+            --incorrect: #c62828;
+            --correct-bg: #e8f5e9;
+            --incorrect-bg: #ffebee;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 24px 20px;
+            margin: auto 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--secondary);
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #eef2f5;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #444;
+        }
+
+        .tag {
+            background: var(--secondary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        /* Setup Screen Controls */
+        .setup-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .setup-group {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 14px;
+            border-radius: 12px;
+        }
+
+        .setup-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 10px;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Quiz UI */
+        .question-card {
+            margin-bottom: 16px;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            line-height: 1.5;
+            color: #111;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            width: 100%;
+        }
+
+        .option-btn:hover {
+            background: #e9ecef;
+        }
+
+        .option-btn:active {
+            transform: scale(0.98);
+        }
+
+        .option-btn.correct {
+            background-color: var(--correct-bg) !important;
+            border-color: var(--correct) !important;
+            color: var(--correct);
+            font-weight: 700;
+        }
+
+        .option-btn.incorrect {
+            background-color: var(--incorrect-bg) !important;
+            border-color: var(--incorrect) !important;
+            color: var(--incorrect);
+            font-weight: 700;
+        }
+
+        .feedback {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            display: none;
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.correct-bg {
+            background: var(--correct-bg);
+            color: var(--correct);
+            border: 1px solid var(--correct);
+        }
+
+        .feedback.incorrect-bg {
+            background: var(--incorrect-bg);
+            color: var(--incorrect);
+            border: 1px solid var(--incorrect);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .btn {
+            flex: 1;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: center;
+            transition: background 0.2s;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn:hover {
+            background: var(--secondary);
+        }
+
+        .btn:disabled {
+            background: #ccc !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            flex: 0 0 auto;
+        }
+
+        /* Revision & Summary Styles */
+        .summary-card {
+            text-align: left;
+        }
+        .summary-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .summary-score {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--secondary);
+            margin: 8px 0;
+        }
+
+        .revision-section {
+            margin-top: 20px;
+        }
+
+        .revision-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--incorrect);
+            border-bottom: 2px solid var(--incorrect-bg);
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
+
+        .wrong-item {
+            background: #fff5f5;
+            border-left: 4px solid var(--incorrect);
+            padding: 12px 14px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .wrong-item .q-title {
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 6px;
+        }
+
+        .wrong-item .ans-info {
+            margin-bottom: 6px;
+        }
+
+        .wrong-item .exp-text {
+            color: #444;
+            background: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px dashed #ffcdd2;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            color: var(--secondary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.95rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>八字命理溫習神器</h1>
+
+    <!-- 1. Setup / Config Screen -->
+    <div id="setup-view" class="setup-card">
+        <div class="setup-group">
+            <div class="setup-title">1. 選擇溫習範疇（可多選）</div>
+            <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" id="area-elements" checked> 五行生剋</label>
+                <label class="checkbox-label"><input type="checkbox" id="area-stem-comb" checked> 天干五合</label>
+                <label class="checkbox-label"><input type="checkbox" id="area-branch-comb" checked> 地支六合 (化氣)</label>
+                <label class="checkbox-label"><input type="checkbox" id="area-branch-clash" checked> 地支六沖</label>
+                <label class="checkbox-label"><input type="checkbox" id="area-branch-sanhe" checked> 地支三合局</label>
+                <label class="checkbox-label"><input type="checkbox" id="area-branch-sanhui" checked> 地支三會 (會方)</label>
+                <label class="checkbox-label" style="grid-column: span 2;"><input type="checkbox" id="area-tengod" checked> 十神推算</label>
+            </div>
+        </div>
+
+        <div class="setup-group">
+            <div class="setup-title">2. 選擇難度等級</div>
+            <div class="radio-group">
+                <label class="checkbox-label">
+                    <input type="radio" name="difficulty" value="easy" checked> 
+                    初級 (顯示陰陽五行提示)
+                </label>
+                <label class="checkbox-label">
+                    <input type="radio" name="difficulty" value="hard"> 
+                    高級 (隱藏提示，實力測驗)
+                </label>
+            </div>
+        </div>
+
+        <button class="btn" style="padding: 14px; font-size: 1.05rem;" onclick="startConfiguredQuiz()">開始溫習 (10 題) ➔</button>
+    </div>
+
+    <!-- 2. Main Quiz View -->
+    <div id="quiz-view" style="display: none;">
+        <div class="stats-bar">
+            <span>難度：<span class="tag" id="diff-tag">初級</span></span>
+            <span>進度：<span id="q-index">1</span> / 10</span>
+            <span>得分：<span id="round-score">0</span></span>
+        </div>
+
+        <div class="question-card">
+            <div class="question-text" id="question">正在載入題目...</div>
+            <div class="options-grid" id="options"></div>
+            <div class="feedback" id="feedback"></div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-secondary" onclick="openModal()">+ 自訂</button>
+            <button class="btn" id="next-btn" onclick="nextQuestion()" disabled>下一題 ➔</button>
+        </div>
+    </div>
+
+    <!-- 3. Round Summary & Revision View -->
+    <div id="summary-view" style="display: none;" class="summary-card">
+        <div class="summary-header">
+            <h2>🎉 本輪練習完成！</h2>
+            <div class="summary-score" id="final-score">0 / 10</div>
+            <p id="summary-eval" style="font-size: 0.95rem; color: #555; line-height: 1.5;"></p>
+        </div>
+
+        <div id="revision-container" class="revision-section"></div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-secondary" onclick="returnToSetup()">⚙️ 重新設定範疇</button>
+            <button class="btn" onclick="startNewRound()">同設定再測一次 ➔</button>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Question Modal -->
+<div class="modal" id="addModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>新增自訂題目</h3>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="input-group">
+            <label>題目內容</label>
+            <input type="text" id="custom-q" placeholder="例如：地支「三合木局」包含哪三個？">
+        </div>
+        <div class="input-group">
+            <label>正確答案</label>
+            <input type="text" id="custom-a" placeholder="例如：亥、卯、未">
+        </div>
+        <div class="input-group">
+            <label>錯誤干擾項 1</label>
+            <input type="text" id="custom-w1" placeholder="例如：申、子、辰">
+        </div>
+        <div class="input-group">
+            <label>錯誤干擾項 2</label>
+            <input type="text" id="custom-w2" placeholder="例如：巳、酉、丑">
+        </div>
+        <div class="input-group">
+            <label>錯誤干擾項 3</label>
+            <input type="text" id="custom-w3" placeholder="例如：寅、午、戌">
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn" onclick="saveCustomQuestion()">儲存題目</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- Domain Data & Basic Generator Functions ---
+
+const elements = ['木', '火', '土', '金', '水'];
+const elementGenerates = { '木':'火', '火':'土', '土':'金', '金':'水', '水':'木' };
+const elementOvercomes = { '木':'土', '土':'水', '水':'火', '火':'金', '金':'木' };
+
+const stems = [
+    { name: '甲', element: '木', polarity: '陽' },
+    { name: '乙', element: '木', polarity: '陰' },
+    { name: '丙', element: '火', polarity: '陽' },
+    { name: '丁', element: '火', polarity: '陰' },
+    { name: '戊', element: '土', polarity: '陽' },
+    { name: '己', element: '土', polarity: '陰' },
+    { name: '庚', element: '金', polarity: '陽' },
+    { name: '辛', element: '金', polarity: '陰' },
+    { name: '壬', element: '水', polarity: '陽' },
+    { name: '癸', element: '水', polarity: '陰' }
+];
+
+const stemCombines = { '甲':'己', '己':'甲', '乙':'庚', '庚':'乙', '丙':'辛', '辛':'丙', '丁':'壬', '壬':'丁', '戊':'癸', '癸':'戊' };
+
+const branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const branchClashes = { '子':'午', '午':'子', '丑':'未', '未':'丑', '寅':'申', '申':'寅', '卯':'酉', '酉':'卯', '辰':'戌', '戌':'辰', '巳':'亥', '亥':'巳' };
+
+const branchSixCombines = [
+    { b1: '子', b2: '丑', transformed: '土' },
+    { b1: '寅', b2: '亥', transformed: '木' },
+    { b1: '卯', b2: '戌', transformed: '火' },
+    { b1: '辰', b2: '酉', transformed: '金' },
+    { b1: '巳', b2: '申', transformed: '水' },
+    { b1: '午', b2: '未', transformed: '土' }
+];
+
+const branchSanHe = [
+    { trio: '申、子、辰', zodiac: '猴、鼠、龍', element: '水局' },
+    { trio: '亥、卯、未', zodiac: '豬、兔、羊', element: '木局' },
+    { trio: '寅、午、戌', zodiac: '虎、馬、狗', element: '火局' },
+    { trio: '巳、酉、丑', zodiac: '蛇、雞、牛', element: '金局' }
+];
+
+const branchSanHui = [
+    { trio: '寅、卯、辰', direction: '東方', element: '木局' },
+    { trio: '巳、午、未', direction: '南方', element: '火局' },
+    { trio: '申、酉、戌', direction: '西方', element: '金局' },
+    { trio: '亥、子、丑', direction: '北方', element: '水局' }
+];
+
+const tenGodNames = {
+    '同我': { '同': '比肩', '異': '劫財' },
+    '我生': { '同': '食神', '異': '傷官' },
+    '我剋': { '同': '偏財', '異': '正財' },
+    '剋我': { '同': '七殺', '異': '正官' },
+    '生我': { '同': '偏印', '異': '正印' }
+};
+
+// --- Question Generator Helper Functions ---
+
+function getQuestionsForArea(area, difficulty) {
+    let pool = [];
+
+    if (area === 'elements') {
+        elements.forEach(el => {
+            // 相生
+            let correctSheng = elementGenerates[el];
+            pool.push({
+                question: `依據五行相生原理，【${el}】生哪一個五行？`,
+                correct: correctSheng,
+                wrong: shuffle(elements.filter(e => e !== correctSheng)).slice(0, 3),
+                explanation: `五行相生：木生火、火生土、土生金、金生水、水生木。故【${el}生${correctSheng}】。`
+            });
+            // 相剋
+            let correctKe = elementOvercomes[el];
+            pool.push({
+                question: `依據五行相剋原理，【${el}】剋哪一個五行？`,
+                correct: correctKe,
+                wrong: shuffle(elements.filter(e => e !== correctKe)).slice(0, 3),
+                explanation: `五行相剋：木剋土、土剋水、水剋火、火剋金、金剋木。故【${el}剋${correctKe}】。`
+            });
+        });
+    } else if (area === 'stem-comb') {
+        stems.forEach(s => {
+            let correct = stemCombines[s.name];
+            pool.push({
+                question: `天干五合中，與天干【${s.name}】相合的是哪一個天干？`,
+                correct: correct,
+                wrong: shuffle(stems.map(st => st.name).filter(st => st !== correct && st !== s.name)).slice(0, 3),
+                explanation: `天干五合：甲己合、乙庚合、丙辛合、丁壬合、戊癸合。故【${s.name}】與【${correct}】相合。`
+            });
+        });
+    } else if (area === 'branch-comb') {
+        branchSixCombines.forEach(c => {
+            let correct = c.transformed;
+            pool.push({
+                question: `地支六合中，【${c.b1}${c.b2}相合】後，合化為什麼五行？`,
+                correct: correct,
+                wrong: shuffle(elements.filter(e => e !== correct)).slice(0, 3),
+                explanation: `地支六合化氣：子丑合土、寅亥合木、卯戌合火、辰酉合金、巳申合水、午未合土。故【${c.b1}${c.b2}合化為${correct}】。`
+            });
+        });
+    } else if (area === 'branch-clash') {
+        branches.forEach(b => {
+            let correct = branchClashes[b];
+            pool.push({
+                question: `根據地支相沖理論，與地支【${b}】相沖的是哪一個地支？`,
+                correct: correct,
+                wrong: shuffle(branches.filter(br => br !== correct && br !== b)).slice(0, 3),
+                explanation: `地支六沖：子午沖、丑未沖、寅申沖、卯酉沖、辰戌沖、巳亥沖。故【${b}】與【${correct}】相沖。`
+            });
+        });
+    } else if (area === 'branch-sanhe') {
+        branchSanHe.forEach(item => {
+            // 問合化
+            pool.push({
+                question: `地支三合中，【${item.trio}】相合，會合化為什麼五行局？`,
+                correct: item.element,
+                wrong: branchSanHe.filter(b => b.trio !== item.trio).map(b => b.element),
+                explanation: `地支三合局：申子辰水局、亥卯未木局、寅午戌火局、巳酉丑金局。`
+            });
+            // 問組成
+            pool.push({
+                question: `地支三合中，合化為【${item.element}】的三個地支（生、旺、墓三位）是哪一組？`,
+                correct: item.trio,
+                wrong: branchSanHe.filter(b => b.trio !== item.trio).map(b => b.trio),
+                explanation: `地支三合局：申子辰（水）、亥卯未（木）、寅午戌（火）、巳酉丑（金）。`
+            });
+        });
+    } else if (area === 'branch-sanhui') {
+        branchSanHui.forEach(item => {
+            pool.push({
+                question: `地支三會中，【${item.trio}】相聚會形成哪一個方向與五行局？`,
+                correct: `${item.direction}${item.element}`,
+                wrong: branchSanHui.filter(b => b.trio !== item.trio).map(b => `${b.direction}${b.element}`),
+                explanation: `地支三會方：寅卯辰（東方木）、巳午未（南方火）、申酉戌（西方金）、亥子丑（北方水）。`
+            });
+            pool.push({
+                question: `地支三會中，代表【${item.direction}${item.element}】的三個特定地支是哪一組？`,
+                correct: item.trio,
+                wrong: branchSanHui.filter(b => b.trio !== item.trio).map(b => b.trio),
+                explanation: `地支三會方：寅卯辰（東方木）、巳午未（南方火）、申酉戌（西方金）、亥子丑（北方水）。`
+            });
+        });
+    } else if (area === 'tengod') {
+        const allTenGods = ['比肩', '劫財', '食神', '傷官', '偏財', '正財', '七殺', '正官', '偏印', '正印'];
+        // 隨機採樣生成 15 個不重複的十神題
+        let created = 0;
+        let visitedKeys = new Set();
+
+        while (created < 15) {
+            let dayMaster = stems[Math.floor(Math.random() * stems.length)];
+            let targetStem = stems[Math.floor(Math.random() * stems.length)];
+            let key = `${dayMaster.name}-${targetStem.name}`;
+
+            if (!visitedKeys.has(key)) {
+                visitedKeys.add(key);
+                let relation = '';
+                if (dayMaster.element === targetStem.element) relation = '同我';
+                else if (elementGenerates[dayMaster.element] === targetStem.element) relation = '我生';
+                else if (elementOvercomes[dayMaster.element] === targetStem.element) relation = '我剋';
+                else if (elementOvercomes[targetStem.element] === dayMaster.element) relation = '剋我';
+                else relation = '生我';
+
+                let polarityRelation = (dayMaster.polarity === targetStem.polarity) ? '同' : '異';
+                let correct = tenGodNames[relation][polarityRelation];
+
+                let dmHint = (difficulty === 'easy') ? `（${dayMaster.polarity}${dayMaster.element}）` : '';
+                let targetHint = (difficulty === 'easy') ? `（${targetStem.polarity}${targetStem.element}）` : '';
+
+                pool.push({
+                    question: `若日主為【${dayMaster.name}】${dmHint}，出現天干【${targetStem.name}】${targetHint}，【${targetStem.name}】對日主而言屬於什麼十神？`,
+                    correct: correct,
+                    wrong: shuffle(allTenGods.filter(g => g !== correct)).slice(0, 3),
+                    explanation: `解題觀念：<br>1. 生剋關係：日主（${dayMaster.name}/${dayMaster.element}）與目標（${targetStem.name}/${targetStem.element}）為「${relation}」。<br>2. 陰陽異同：${dayMaster.name}（${dayMaster.polarity}）與 ${targetStem.name}（${targetStem.polarity}）為「${polarityRelation === '同' ? '同性 (偏)' : '異性 (正)'}」。<br>推導結果：【${correct}】。`
+                });
+                created++;
+            }
+        }
+    }
+
+    return pool;
+}
+
+// --- App State & Round Pool Management ---
+
+let config = {
+    areas: [],
+    difficulty: 'easy'
+};
+
+let currentQuestions = []; // 當前輪次的 10 個不重複題目
+let currentQIndex = 0;
+let roundScore = 0;
+let answered = false;
+let wrongTracker = [];
+
+// 建構當前輪次的 10 題 (無重複)
+function buildRoundQuestions() {
+    let masterPool = [];
+
+    // 從各選定範疇抓出題目池
+    config.areas.forEach(area => {
+        let areaPool = getQuestionsForArea(area, config.difficulty);
+        masterPool = masterPool.concat(areaPool);
+    });
+
+    // 混入自訂題目 (如果有)
+    const customList = JSON.parse(localStorage.getItem('bazi_custom_questions') || '[]');
+    customList.forEach(cq => {
+        masterPool.push({
+            question: cq.q,
+            correct: cq.a,
+            wrong: [cq.w1, cq.w2, cq.w3],
+            explanation: '自訂題目練習'
+        });
+    });
+
+    // 洗牌整個題目池
+    masterPool = shuffle(masterPool);
+
+    // 去重機制：確保題幹絕不重複
+    let selected = [];
+    let usedQuestions = new Set();
+
+    for (let qObj of masterPool) {
+        if (!usedQuestions.has(qObj.question)) {
+            usedQuestions.add(qObj.question);
+            selected.push(qObj);
+        }
+        if (selected.length === 10) break;
+    }
+
+    return selected;
+}
+
+function startConfiguredQuiz() {
+    const selectedAreas = [];
+    if (document.getElementById('area-elements').checked) selectedAreas.push('elements');
+    if (document.getElementById('area-stem-comb').checked) selectedAreas.push('stem-comb');
+    if (document.getElementById('area-branch-comb').checked) selectedAreas.push('branch-comb');
+    if (document.getElementById('area-branch-clash').checked) selectedAreas.push('branch-clash');
+    if (document.getElementById('area-branch-sanhe').checked) selectedAreas.push('branch-sanhe');
+    if (document.getElementById('area-branch-sanhui').checked) selectedAreas.push('branch-sanhui');
+    if (document.getElementById('area-tengod').checked) selectedAreas.push('tengod');
+
+    if (selectedAreas.length === 0) {
+        alert('請至少選擇一個溫習範疇！');
+        return;
+    }
+
+    config.areas = selectedAreas;
+    config.difficulty = document.querySelector('input[name="difficulty"]:checked').value;
+
+    document.getElementById('diff-tag').innerText = config.difficulty === 'easy' ? '初級' : '高級';
+    
+    document.getElementById('setup-view').style.display = 'none';
+    document.getElementById('quiz-view').style.display = 'block';
+
+    startNewRound();
+}
+
+function startNewRound() {
+    currentQuestions = buildRoundQuestions();
+    currentQIndex = 0;
+    roundScore = 0;
+    wrongTracker = [];
+
+    document.getElementById('quiz-view').style.display = 'block';
+    document.getElementById('summary-view').style.display = 'none';
+
+    loadQuestion();
+}
+
+function loadQuestion() {
+    answered = false;
+    let currentQ = currentQuestions[currentQIndex];
+    
+    document.getElementById('q-index').innerText = currentQIndex + 1;
+    document.getElementById('round-score').innerText = roundScore;
+    document.getElementById('next-btn').disabled = true;
+    
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('feedback').innerHTML = '';
+    document.getElementById('question').innerText = currentQ.question;
+
+    const allOptions = shuffle([currentQ.correct, ...currentQ.wrong]);
+    const optionsContainer = document.getElementById('options');
+    optionsContainer.innerHTML = '';
+
+    allOptions.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(opt, btn, currentQ);
+        optionsContainer.appendChild(btn);
+    });
+
+    if (currentQIndex === 9) {
+        document.getElementById('next-btn').innerText = '查看成績與檢討 ➔';
+    } else {
+        document.getElementById('next-btn').innerText = '下一題 ➔';
+    }
+}
+
+function checkAnswer(selected, btnElement, currentQ) {
+    if (answered) return;
+    answered = true;
+
+    const isCorrect = selected === currentQ.correct;
+    const feedback = document.getElementById('feedback');
+
+    const allBtns = document.querySelectorAll('.option-btn');
+    allBtns.forEach(b => {
+        if (b.innerText === currentQ.correct) {
+            b.classList.add('correct');
+        }
+    });
+
+    if (isCorrect) {
+        roundScore++;
+        document.getElementById('round-score').innerText = roundScore;
+        btnElement.classList.add('correct');
+        feedback.className = 'feedback show correct-bg';
+        feedback.innerHTML = `<strong>答對了！</strong> ${currentQ.explanation}`;
+    } else {
+        btnElement.classList.add('incorrect');
+        feedback.className = 'feedback show incorrect-bg';
+        feedback.innerHTML = `<strong>答錯了！</strong> 正確答案：<b>${currentQ.correct}</b>。<br>${currentQ.explanation}`;
+        
+        wrongTracker.push({
+            question: currentQ.question,
+            userAns: selected,
+            correctAns: currentQ.correct,
+            explanation: currentQ.explanation
+        });
+    }
+
+    document.getElementById('next-btn').disabled = false;
+}
+
+function nextQuestion() {
+    if (currentQIndex < 9) {
+        currentQIndex++;
+        loadQuestion();
+    } else {
+        showRoundSummary();
+    }
+}
+
+function showRoundSummary() {
+    document.getElementById('quiz-view').style.display = 'none';
+    document.getElementById('summary-view').style.display = 'block';
+
+    document.getElementById('final-score').innerText = `${roundScore} / 10`;
+
+    let evalText = '';
+    if (roundScore === 10) {
+        evalText = '🎉 太厲害了！全對！你的八字基礎非常紮實！';
+    } else if (roundScore >= 7) {
+        evalText = '表現優異！以下為你整理了本輪錯題的解析，幫你快速查漏補缺：';
+    } else {
+        evalText = '再接再厲！建議仔細閱讀下方的解題步驟，多練習幾次就會越來越順手！';
+    }
+
+    document.getElementById('summary-eval').innerHTML = evalText;
+
+    const revContainer = document.getElementById('revision-container');
+    revContainer.innerHTML = '';
+
+    if (wrongTracker.length > 0) {
+        let revHTML = `<div class="revision-title">📌 本輪錯題與觀念解析 (${wrongTracker.length} 題)</div>`;
+        wrongTracker.forEach((item, index) => {
+            revHTML += `
+                <div class="wrong-item">
+                    <div class="q-title">錯題 ${index + 1}：${item.question}</div>
+                    <div class="ans-info">
+                        你的答案：<span style="color:var(--incorrect); font-weight:bold;">${item.userAns}</span> ｜ 
+                        正確答案：<span style="color:var(--correct); font-weight:bold;">${item.correctAns}</span>
+                    </div>
+                    <div class="exp-text">💡 <strong>解題觀念：</strong><br>${item.explanation}</div>
+                </div>
+            `;
+        });
+        revContainer.innerHTML = revHTML;
+    } else {
+        revContainer.innerHTML = `<div style="text-align:center; color:var(--correct); font-weight:bold; padding:15px; background:var(--correct-bg); border-radius:10px;">🌟 零錯題！表現太出色了！</div>`;
+    }
+}
+
+function returnToSetup() {
+    document.getElementById('summary-view').style.display = 'none';
+    document.getElementById('setup-view').style.display = 'flex';
+}
+
+function shuffle(array) {
+    let arr = array.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// --- Custom Question Modal Logic ---
+function openModal() { document.getElementById('addModal').style.display = 'flex'; }
+function closeModal() { document.getElementById('addModal').style.display = 'none'; }
+
+function saveCustomQuestion() {
+    const q = document.getElementById('custom-q').value;
+    const a = document.getElementById('custom-a').value;
+    const w1 = document.getElementById('custom-w1').value;
+    const w2 = document.getElementById('custom-w2').value;
+    const w3 = document.getElementById('custom-w3').value;
+
+    if (!q || !a || !w1) {
+        alert('請填寫題目、正確答案及至少一個干擾項！');
+        return;
+    }
+
+    const existing = JSON.parse(localStorage.getItem('bazi_custom_questions') || '[]');
+    existing.push({ q, a, w1, w2: w2 || '乙木', w3: w3 || '庚金' });
+    localStorage.setItem('bazi_custom_questions', JSON.stringify(existing));
+
+    closeModal();
+    alert('自訂題目新增成功！');
+    
+    document.getElementById('custom-q').value = '';
+    document.getElementById('custom-a').value = '';
+    document.getElementById('custom-w1').value = '';
+    document.getElementById('custom-w2').value = '';
+    document.getElementById('custom-w3').value = '';
+}
+</script>
+</body>
+</html>
