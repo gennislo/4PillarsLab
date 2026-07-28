@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八字命理溫習神器 v6.0</title>
+    <title>八字命理溫習神器 v6.1</title>
     <style>
         :root {
             --primary: #4a6fa5;
@@ -181,7 +181,7 @@
             border-radius: 10px;
             display: none;
             font-size: 0.92rem;
-            line-height: 1.45;
+            line-height: 1.5;
         }
 
         .feedback.show {
@@ -273,7 +273,7 @@
             border-radius: 0 8px 8px 0;
             margin-bottom: 12px;
             font-size: 0.9rem;
-            line-height: 1.45;
+            line-height: 1.5;
         }
 
         .wrong-item .q-title {
@@ -374,8 +374,8 @@
                 <label class="checkbox-label"><input type="checkbox" id="area-branch-clash" checked> 地支六沖</label>
                 <label class="checkbox-label"><input type="checkbox" id="area-branch-sanhe" checked> 地支三合局</label>
                 <label class="checkbox-label"><input type="checkbox" id="area-branch-sanhui" checked> 地支三會 (會方)</label>
-                <label class="checkbox-label" style="grid-column: span 2;"><input type="checkbox" id="area-tengod" checked> 天干十神推算 (對照表)</label>
-                <label class="checkbox-label" style="grid-column: span 2;"><input type="checkbox" id="area-branch-tengod" checked> 地支本氣十神推算 (新功能)</label>
+                <label class="checkbox-label" style="grid-column: span 2;"><input type="checkbox" id="area-tengod" checked> 天干十神推算</label>
+                <label class="checkbox-label" style="grid-column: span 2;"><input type="checkbox" id="area-branch-tengod" checked> 地支本氣十神推算</label>
             </div>
         </div>
 
@@ -548,6 +548,8 @@ const tenGodDataBank = {
 
 const allTenGods = ['比肩', '劫財', '食神', '傷官', '偏財', '正財', '七殺', '正官', '偏印', '正印'];
 
+const tenGodExplanationNote = `<br><br>💡 <b>十神推算法則：</b><br>完整五行生剋還包含：生我者為正偏印、我生者為食神傷官、剋我者為官殺、我剋者為財星、同我者為比劫。<br>陽見陰，陰見陽：比肩共食神 偏財還偏印 七殺是同群<br>陽見陽，陰見陰：比劫共傷官 正財還正印 正官是當權`;
+
 // --- Question Generator Helper Functions ---
 
 function getQuestionsForArea(area, difficulty) {
@@ -632,12 +634,12 @@ function getQuestionsForArea(area, difficulty) {
                     question: `若日主為【${dayMaster.name}】${dmHint}，遇上天干【${targetStem.name}】${targetHint}，對應十神為何？`,
                     correct: correct,
                     wrong: shuffle(allTenGods.filter(g => g !== correct)).slice(0, 3),
-                    explanation: `根據《各日主十神對照表》：日主【${dmKey}】遇天干【${targetStem.name}】對應之十神為【${correct}】。`
+                    explanation: `日主【${dayMaster.name}】（${dayMaster.polarity}${dayMaster.element}）遇天干【${targetStem.name}】（${targetStem.polarity}${targetStem.element}），對應十神為【${correct}】。${tenGodExplanationNote}`
                 });
             });
         });
     } else if (area === 'branch-tengod') {
-        // ✨ NEW: Earthly Branches Ten Gods Questions (Based on Main Hidden Stem)
+        // Earthly Branches Ten Gods Questions
         stems.forEach(dayMaster => {
             branchMainStems.forEach(targetBranch => {
                 let dmKey = `${dayMaster.name}${dayMaster.element}`;
@@ -651,7 +653,7 @@ function getQuestionsForArea(area, difficulty) {
                     question: `若日主為【${dayMaster.name}】${dmHint}，遇上地支【${targetBranch.name}】${branchHint}，對應十神為何？`,
                     correct: correct,
                     wrong: shuffle(allTenGods.filter(g => g !== correct)).slice(0, 3),
-                    explanation: `地支【${targetBranch.name}】的本氣天干為【${mainStemName}】。查對照表：日主【${dmKey}】遇【${mainStemName}】對應十神為【${correct}】。`
+                    explanation: `地支【${targetBranch.name}】的本氣天干為【${mainStemName}】（${targetBranch.polarity}${targetBranch.element}）。日主【${dayMaster.name}】（${dayMaster.polarity}${dayMaster.element}）遇【${mainStemName}】，對應十神為【${correct}】。${tenGodExplanationNote}`
                 });
             });
         });
@@ -796,7 +798,7 @@ function checkAnswer(selected, btnElement, currentQ) {
         document.getElementById('round-score').innerText = roundScore;
         btnElement.classList.add('correct');
         feedback.className = 'feedback show correct-bg';
-        feedback.innerHTML = `<strong>答對了！</strong> ${currentQ.explanation}`;
+        feedback.innerHTML = `<strong>答對了！</strong><br>${currentQ.explanation}`;
     } else {
         btnElement.classList.add('incorrect');
         feedback.className = 'feedback show incorrect-bg';
