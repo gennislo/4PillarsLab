@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>八字地支與十神練習器 (BaZi Practice Engine)</title>
+  <title>八字綜合練習器 (BaZi Practice Engine)</title>
   <style>
     * {
       box-sizing: border-box;
@@ -37,17 +37,17 @@
     p.subtitle {
       font-size: 0.88rem;
       color: #6e6e73;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
     .mode-selector {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
       margin-bottom: 20px;
     }
     .mode-btn {
-      flex: 1;
       padding: 10px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
       border: 1px solid #dcdce1;
       background: #f8f9fa;
@@ -69,7 +69,7 @@
       margin-bottom: 20px;
     }
     .prompt-text {
-      font-size: 2.2rem;
+      font-size: 2rem;
       font-weight: bold;
       letter-spacing: 2px;
       color: #1a1a1a;
@@ -82,7 +82,7 @@
     .options-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      gap: 10px;
       margin-bottom: 20px;
     }
     button.option-btn {
@@ -90,7 +90,7 @@
       border: 2px solid #dcdce1;
       border-radius: 10px;
       padding: 12px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -118,7 +118,7 @@
       border-top: 1px solid #e5e5ea;
       padding-top: 16px;
     }
-    button.next-btn {
+    button.action-btn {
       width: 100%;
       background-color: #0071e3;
       color: white;
@@ -131,144 +131,186 @@
       margin-bottom: 16px;
       display: none;
     }
-    button.next-btn:hover {
+    button.action-btn:hover {
       background-color: #0077ed;
+    }
+    .summary-box {
+      text-align: left;
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      line-height: 1.6;
     }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h1>八字基礎地支與十神練習</h1>
-  <p class="subtitle">選取模式以進行練習</p>
+  <h1>八字全方位基礎練習器</h1>
+  <p class="subtitle">每輪 10 題，選取模式開始練習</p>
 
   <div class="mode-selector">
-    <button id="mode1Btn" class="mode-btn active" onclick="switchMode('combinations')">地支六合</button>
-    <button id="mode2Btn" class="mode-btn" onclick="switchMode('tenGods')">日干與地支本氣</button>
+    <button id="m1" class="mode-btn active" onclick="switchCategory('liuhe')">地支六合</button>
+    <button id="m2" class="mode-btn" onclick="switchCategory('liuchong')">地支六沖</button>
+    <button id="m3" class="mode-btn" onclick="switchCategory('sanhe')">地支三合</button>
+    <button id="m4" class="mode-btn" onclick="switchCategory('sanhui')">地支三會</button>
+    <button id="m5" class="mode-btn" onclick="switchCategory('tengods')" style="grid-column: span 2;">日干與地支本氣十神</button>
   </div>
 
-  <div class="question-box">
-    <div id="promptDisplay" class="prompt-text">子丑</div>
-    <div id="hintDisplay" class="hint">請選擇對應的答案</div>
+  <div id="quizContent">
+    <div class="question-box">
+      <div id="promptDisplay" class="prompt-text">--</div>
+      <div id="hintDisplay" class="hint">請選擇對應答案</div>
+    </div>
+
+    <div id="feedback" class="feedback"></div>
+
+    <div class="options-grid" id="optionsContainer"></div>
+
+    <button id="actionBtn" class="action-btn" onclick="handleAction()">下一題</button>
   </div>
 
-  <div id="feedback" class="feedback"></div>
-
-  <div class="options-grid" id="optionsContainer">
-    <!-- Options dynamically populated -->
+  <div id="summaryArea" style="display: none;">
+    <div class="summary-box" id="summaryContent"></div>
+    <button class="action-btn" style="display: block;" onclick="restartRound()">重新開始一輪 (Restart)</button>
   </div>
-
-  <button id="nextBtn" class="next-btn" onclick="nextQuestion()">下一題 (Next)</button>
 
   <div class="score-board">
+    <span>本輪進度: <strong id="currentNum">1</strong> / 10</span>
     <span>答對: <strong id="scoreCount">0</strong></span>
-    <span>總題數: <strong id="totalCount">0</strong></span>
   </div>
 </div>
 
 <script>
-  // 1. 地支六合數據 (Six Branch Combinations Data)
-  const branchCombinations = [
+  // 1. 地支六合 (Corrected 午未合化火)
+  const liuheData = [
     { prompt: "子丑", answer: "土", label: "子丑合化土", hint: "組合合化為哪種五行？", options: ["木", "火", "土", "金", "水"] },
     { prompt: "寅亥", answer: "木", label: "寅亥合化木", hint: "組合合化為哪種五行？", options: ["木", "火", "土", "金", "水"] },
     { prompt: "卯戌", answer: "火", label: "卯戌合化火", hint: "組合合化為哪種五行？", options: ["木", "火", "土", "金", "水"] },
     { prompt: "辰酉", answer: "金", label: "辰酉合化金", hint: "組合合化為哪種五行？", options: ["木", "火", "土", "金", "水"] },
     { prompt: "巳申", answer: "水", label: "巳申合化水", hint: "組合合化為哪種五行？", options: ["木", "火", "土", "金", "水"] },
-    { prompt: "午未", answer: "火", label: "午未合化火", hint: "組合合化為哪種五行？", options: ["木", "火", "土", "金", "水"] } // Updated: 午未合化火
+    { prompt: "午未", answer: "火", label: "午未合化火", hint: "組合合化為哪種五行？", options: ["木", "火", "土", "金", "水"] }
   ];
 
-  // 2. 日干與地支本氣十神數據庫 (Day Master to Main Hidden Stem Ten Gods)
-  const tenGodsQuestions = [
-    // 甲木日干
-    { prompt: "甲木日干 遇 寅", answer: "甲比肩", label: "甲木遇寅地支本氣藏甲，為【甲比肩】", options: ["甲比肩", "乙劫財", "丙食神", "壬偏印"] },
-    { prompt: "甲木日干 遇 卯", answer: "乙劫財", label: "甲木遇卯地支本氣藏乙，為【乙劫財】", options: ["甲比肩", "乙劫財", "丁傷官", "癸正印"] },
-    { prompt: "甲木日干 遇 巳午", answer: "丙丁食傷", label: "甲木遇巳午地支本氣藏丙丁，為【丙丁食傷】", options: ["丙丁食傷", "戊己財星", "庚辛官殺", "壬癸印星"] },
-    { prompt: "甲木日干 遇 辰戌丑未", answer: "戊己財星", label: "甲木遇辰戌丑未地支本氣藏戊己，為【戊己財星】", options: ["丙丁食傷", "戊己財星", "庚辛官殺", "壬癸印星"] },
-    { prompt: "甲木日干 遇 申酉", answer: "庚辛官殺", label: "甲木遇申酉地支本氣藏庚辛，為【庚辛官殺】", options: ["丙丁食傷", "戊己財星", "庚辛官殺", "壬癸印星"] },
-    { prompt: "甲木日干 遇 亥子", answer: "壬癸印星", label: "甲木遇亥子地支本氣藏壬癸，為【壬癸印星】", options: ["丙丁食傷", "戊己財星", "庚辛官殺", "壬癸印星"] },
-
-    // 乙木日干
-    { prompt: "乙木日干 遇 卯", answer: "乙比肩", label: "乙木遇卯地支本氣藏乙，為【乙比肩】", options: ["乙比肩", "甲劫財", "丁食神", "癸偏印"] },
-    { prompt: "乙木日干 遇 寅", answer: "甲劫財", label: "乙木遇寅地支本氣藏甲，為【甲劫財】", options: ["乙比肩", "甲劫財", "丙傷官", "壬正印"] },
-    { prompt: "乙木日干 遇 巳午", answer: "丁丙食傷", label: "乙木遇巳午地支本氣藏丁丙，為【丁丙食傷】", options: ["丁丙食傷", "己戊財星", "辛庚官殺", "癸壬印星"] },
-    { prompt: "乙木日干 遇 辰戌丑未", answer: "己戊財星", label: "乙木遇辰戌丑未地支本氣藏己戊，為【己戊財星】", options: ["丁丙食傷", "己戊財星", "辛庚官殺", "癸壬印星"] },
-    { prompt: "乙木日干 遇 申酉", answer: "辛庚官殺", label: "乙木遇申酉地支本氣藏辛庚，為【辛庚官殺】", options: ["丁丙食傷", "己戊財星", "辛庚官殺", "癸壬印星"] },
-    { prompt: "乙木日干 遇 亥子", answer: "癸壬印星", label: "乙木遇亥子地支本氣藏癸壬，為【癸壬印星】", options: ["丁丙食傷", "己戊財星", "辛庚官殺", "癸壬印星"] },
-
-    // 丙火日干
-    { prompt: "丙火日干 遇 巳", answer: "丙比肩", label: "丙火遇巳地支本氣藏丙，為【丙比肩】", options: ["丙比肩", "丁劫財", "戊食神", "甲偏印"] },
-    { prompt: "丙火日干 遇 午", answer: "丁劫財", label: "丙火遇午地支本氣藏丁，為【丁劫財】", options: ["丙比肩", "丁劫財", "己傷官", "乙正印"] },
-    { prompt: "丙火日干 遇 辰戌丑未", answer: "戊己食傷", label: "丙火遇辰戌丑未地支本氣藏戊己，為【戊己食傷】", options: ["戊己食傷", "庚辛財星", "壬癸官殺", "甲乙印星"] },
-    { prompt: "丙火日干 遇 申酉", answer: "庚辛財星", label: "丙火遇申酉地支本氣藏庚辛，為【庚辛財星】", options: ["戊己食傷", "庚辛財星", "壬癸官殺", "甲乙印星"] },
-    { prompt: "丙火日干 遇 亥子", answer: "壬癸官殺", label: "丙火遇亥子地支本氣藏壬癸，為【壬癸官殺】", options: ["戊己食傷", "庚辛財星", "壬癸官殺", "甲乙印星"] },
-    { prompt: "丙火日干 遇 寅卯", answer: "甲乙印星", label: "丙火遇寅卯地支本氣藏甲乙，為【甲乙印星】", options: ["戊己食傷", "庚辛財星", "壬癸官殺", "甲乙印星"] },
-
-    // 丁火日干
-    { prompt: "丁火日干 遇 午", answer: "丁比肩", label: "丁火遇午地支本氣藏丁，為【丁比肩】", options: ["丁比肩", "丙劫財", "己食神", "乙偏印"] },
-    { prompt: "丁火日干 遇 巳", answer: "丙劫財", label: "丁火遇巳地支本氣藏丙，為【丙劫財】", options: ["丁比肩", "丙劫財", "戊傷官", "甲正印"] },
-    { prompt: "丁火日干 遇 辰戌丑未", answer: "己戊食傷", label: "丁火遇辰戌丑未地支本氣藏己戊，為【己戊食傷】", options: ["己戊食傷", "辛庚財星", "癸壬官殺", "乙甲印星"] },
-    { prompt: "丁火日干 遇 申酉", answer: "辛庚財星", label: "丁火遇申酉地支本氣藏辛庚，為【辛庚財星】", options: ["己戊食傷", "辛庚財星", "癸壬官殺", "乙甲印星"] },
-    { prompt: "丁火日干 遇 亥子", answer: "癸壬官殺", label: "丁火遇亥子地支本氣藏癸壬，為【癸壬官殺】", options: ["己戊食傷", "辛庚財星", "癸壬官殺", "乙甲印星"] },
-    { prompt: "丁火日干 遇 寅卯", answer: "乙甲印星", label: "丁火遇寅卯地支本氣藏乙甲，為【乙甲印星】", options: ["己戊食傷", "辛庚財星", "癸壬官殺", "乙甲印星"] },
-
-    // 戊土日干
-    { prompt: "戊土日干 遇 辰戌", answer: "戊比肩", label: "戊土遇辰戌地支本氣藏戊，為【戊比肩】", options: ["戊比肩", "己劫財", "庚食神", "丙偏印"] },
-    { prompt: "戊土日干 遇 丑未", answer: "己劫財", label: "戊土遇丑未地支本氣藏己，為【己劫財】", options: ["戊比肩", "己劫財", "辛傷官", "丁正印"] },
-    { prompt: "戊土日干 遇 申酉", answer: "庚辛食傷", label: "戊土遇申酉地支本氣藏庚辛，為【庚辛食傷】", options: ["庚辛食傷", "壬癸財星", "甲乙官殺", "丙丁印星"] },
-    { prompt: "戊土日干 遇 亥子", answer: "壬癸財星", label: "戊土遇亥子地支本氣藏壬癸，為【壬癸財星】", options: ["庚辛食傷", "壬癸財星", "甲乙官殺", "丙丁印星"] },
-    { prompt: "戊土日干 遇 寅卯", answer: "甲乙官殺", label: "戊土遇寅卯地支本氣藏甲乙，為【甲乙官殺】", options: ["庚辛食傷", "壬癸財星", "甲乙官殺", "丙丁印星"] },
-    { prompt: "戊土日干 遇 巳午", answer: "丙丁印星", label: "戊土遇巳午地支本氣藏丙丁，為【丙丁印星】", options: ["庚辛食傷", "壬癸財星", "甲乙官殺", "丙丁印星"] },
-
-    // 己土日干
-    { prompt: "己土日干 遇 丑未", answer: "己比肩", label: "己土遇丑未地支本氣藏己，為【己比肩】", options: ["己比肩", "戊劫財", "辛食神", "丁偏印"] },
-    { prompt: "己土日干 遇 辰戌", answer: "戊劫財", label: "己土遇辰戌地支本氣藏戊，為【戊劫財】", options: ["己比肩", "戊劫財", "庚傷官", "丙正印"] },
-    { prompt: "己土日干 遇 申酉", answer: "辛庚食傷", label: "己土遇申酉地支本氣藏辛庚，為【辛庚食傷】", options: ["辛庚食傷", "癸壬財星", "乙甲官殺", "丁丙印星"] },
-    { prompt: "己土日干 遇 亥子", answer: "癸壬財星", label: "己土遇亥子地支本氣藏癸壬，為【癸壬財星】", options: ["辛庚食傷", "癸壬財星", "乙甲官殺", "丁丙印星"] },
-    { prompt: "己土日干 遇 寅卯", answer: "乙甲官殺", label: "己土遇寅卯地支本氣藏乙甲，為【乙甲官殺】", options: ["辛庚食傷", "癸壬財星", "乙甲官殺", "丁丙印星"] },
-    { prompt: "己土日干 遇 巳午", answer: "丁丙印星", label: "己土遇巳午地支本氣藏丁丙，為【丁丙印星】", options: ["辛庚食傷", "癸壬財星", "乙甲官殺", "丁丙印星"] },
-
-    // 庚金日干
-    { prompt: "庚金日干 遇 申", answer: "庚比肩", label: "庚金遇申地支本氣藏庚，為【庚比肩】", options: ["庚比肩", "辛劫財", "壬食神", "戊偏印"] },
-    { prompt: "庚金日干 遇 酉", answer: "辛劫財", label: "庚金遇酉地支本氣藏辛，為【辛劫財】", options: ["庚比肩", "辛劫財", "癸傷官", "己正印"] },
-    { prompt: "庚金日干 遇 亥子", answer: "壬癸食傷", label: "庚金遇亥子地支本氣藏壬癸，為【壬癸食傷】", options: ["壬癸食傷", "甲乙財星", "丙丁官殺", "戊己印星"] },
-    { prompt: "庚金日干 遇 寅卯", answer: "甲乙財星", label: "庚金遇寅卯地支本氣藏甲乙，為【甲乙財星】", options: ["壬癸食傷", "甲乙財星", "丙丁官殺", "戊己印星"] },
-    { prompt: "庚金日干 遇 巳午", answer: "丙丁官殺", label: "庚金遇巳午地支本氣藏丙丁，為【丙丁官殺】", options: ["壬癸食傷", "甲乙財星", "丙丁官殺", "戊己印星"] },
-    { prompt: "庚金日干 遇 辰戌丑未", answer: "戊己印星", label: "庚金遇辰戌丑未地支本氣藏戊己，為【戊己印星】", options: ["壬癸食傷", "甲乙財星", "丙丁官殺", "戊己印星"] },
-
-    // 辛金日干
-    { prompt: "辛金日干 遇 酉", answer: "辛比肩", label: "辛金遇酉地支本氣藏辛，為【辛比肩】", options: ["辛比肩", "庚劫財", "癸食神", "己偏印"] },
-    { prompt: "辛金日干 遇 申", answer: "庚劫財", label: "辛金遇申地支本氣藏庚，為【庚劫財】", options: ["辛比肩", "庚劫財", "壬傷官", "戊正印"] },
-    { prompt: "辛金日干 遇 亥子", answer: "癸壬食傷", label: "辛金遇亥子地支本氣藏癸壬，為【癸壬食傷】", options: ["癸壬食傷", "乙甲財星", "丁丙官殺", "己戊印星"] },
-    { prompt: "辛金日干 遇 寅卯", answer: "乙甲財星", label: "辛金遇寅卯地支本氣藏乙甲，為【乙甲財星】", options: ["癸壬食傷", "乙甲財星", "丁丙官殺", "己戊印星"] },
-    { prompt: "辛金日干 遇 巳午", answer: "丁丙官殺", label: "辛金遇巳午地支本氣藏丁丙，為【丁丙官殺】", options: ["癸壬食傷", "乙甲財星", "丁丙官殺", "己戊印星"] },
-    { prompt: "辛金日干 遇 辰戌丑未", answer: "己戊印星", label: "辛金遇辰戌丑未地支本氣藏己戊，為【己戊印星】", options: ["癸壬食傷", "乙甲財星", "丁丙官殺", "己戊印星"] },
-
-    // 壬水日干
-    { prompt: "壬水日干 遇 亥", answer: "壬比肩", label: "壬水遇亥地支本氣藏壬，為【壬比肩】", options: ["壬比肩", "癸劫財", "甲食神", "庚偏印"] },
-    { prompt: "壬水日干 遇 子", answer: "癸劫財", label: "壬水遇子地支本氣藏癸，為【癸劫財】", options: ["壬比肩", "癸劫財", "乙傷官", "辛正印"] },
-    { prompt: "壬水日干 遇 寅卯", answer: "甲乙食傷", label: "壬水遇寅卯地支本氣藏甲乙，為【甲乙食傷】", options: ["甲乙食傷", "丙丁財星", "戊己官殺", "申酉印星"] },
-    { prompt: "壬水日干 遇 巳午", answer: "丙丁財星", label: "壬水遇巳午地支本氣藏丙丁，為【丙丁財星】", options: ["甲乙食傷", "丙丁財星", "戊己官殺", "申酉印星"] },
-    { prompt: "壬水日干 遇 辰戌丑未", answer: "戊己官殺", label: "壬水遇辰戌丑未地支本氣藏戊己，為【戊己官殺】", options: ["甲乙食傷", "丙丁財星", "戊己官殺", "申酉印星"] },
-    { prompt: "壬水日干 遇 申酉", answer: "申酉印星", label: "壬水遇申酉地支本氣藏庚辛，為【申酉印星】", options: ["甲乙食傷", "丙丁財星", "戊己官殺", "申酉印星"] }
+  // 2. 地支六沖
+  const liuchongData = [
+    { prompt: "子", answer: "午", label: "子午相沖", hint: "請問與【子】相沖的地支是？", options: ["午", "未", "申", "酉"] },
+    { prompt: "丑", answer: "未", label: "丑未相沖", hint: "請問與【丑】相沖的地支是？", options: ["辰", "戌", "未", "午"] },
+    { prompt: "寅", answer: "申", label: "寅申相沖", hint: "請問與【寅】相沖的地支是？", options: ["巳", "申", "亥", "酉"] },
+    { prompt: "卯", answer: "酉", label: "卯酉相沖", hint: "請問與【卯】相沖的地支是？", options: ["辰", "戌", "酉", "午"] },
+    { prompt: "辰", answer: "戌", label: "辰戌相沖", hint: "請問與【辰】相沖的地支是？", options: ["丑", "未", "戌", "亥"] },
+    { prompt: "巳", answer: "亥", label: "巳亥相沖", hint: "請問與【巳】相沖的地支是？", options: ["申", "亥", "子", "午"] }
   ];
 
-  let currentMode = 'combinations'; // 'combinations' or 'tenGods'
-  let activeDataSet = branchCombinations;
+  // 3. 三合局
+  const sanheData = [
+    { prompt: "申子辰", answer: "水局", label: "申子辰三合水局", hint: "合化為哪種三合局？", options: ["木局", "火局", "金局", "水局"] },
+    { prompt: "亥卯未", answer: "木局", label: "亥卯未三合木局", hint: "合化為哪種三合局？", options: ["木局", "火局", "金局", "水局"] },
+    { prompt: "寅午戌", answer: "火局", label: "寅午戌三合火局", hint: "合化為哪種三合局？", options: ["木局", "火局", "金局", "水局"] },
+    { prompt: "巳酉丑", answer: "金局", label: "巳酉丑三合金局", hint: "合化為哪種三合局？", options: ["木局", "火局", "金局", "水局"] }
+  ];
+
+  // 4. 三會局
+  const sanhuiData = [
+    { prompt: "寅卯辰", answer: "東方木", label: "寅卯辰三會東方木", hint: "會聚為哪一方位與五行？", options: ["東方木", "南方火", "西方金", "北方水"] },
+    { prompt: "巳午未", answer: "南方火", label: "巳午未三會南方火", hint: "會聚為哪一方位與五行？", options: ["東方木", "南方火", "西方金", "北方水"] },
+    { prompt: "申酉戌", answer: "西方金", label: "申酉戌三會西方金", hint: "會聚為哪一方位與五行？", options: ["東方木", "南方火", "西方金", "北方水"] },
+    { prompt: "亥子丑", answer: "北方水", label: "亥子丑三會北方水", hint: "會聚為哪一方位與五行？", options: ["東方木", "南方火", "西方金", "北方水"] }
+  ];
+
+  // 5. 日干對地支本氣十神 (Based on user reference)
+  const tengodsData = [
+    { prompt: "甲木日干 遇 寅", answer: "甲比肩", label: "甲木遇寅藏甲，為【甲比肩】", options: ["甲比肩", "乙劫財", "丙食神", "壬偏印"] },
+    { prompt: "甲木日干 遇 卯", answer: "乙劫財", label: "甲木遇卯藏乙，為【乙劫財】", options: ["甲比肩", "乙劫財", "丁傷官", "癸正印"] },
+    { prompt: "甲木日干 遇 巳午", answer: "丙丁食傷", label: "甲木遇巳午藏丙丁，為【丙丁食傷】", options: ["丙丁食傷", "戊己財星", "庚辛官殺", "壬癸印星"] },
+    { prompt: "甲木日干 遇 辰戌丑未", answer: "戊己財星", label: "甲木遇辰戌丑未藏戊己，為【戊己財星】", options: ["丙丁食傷", "戊己財星", "庚辛官殺", "壬癸印星"] },
+    { prompt: "甲木日干 遇 申酉", answer: "庚辛官殺", label: "甲木遇申酉藏庚辛，為【庚辛官殺】", options: ["丙丁食傷", "戊己財星", "庚辛官殺", "壬癸印星"] },
+    { prompt: "甲木日干 遇 亥子", answer: "壬癸印星", label: "甲木遇亥子藏壬癸，為【壬癸印星】", options: ["丙丁食傷", "戊己財星", "庚辛官殺", "壬癸印星"] },
+
+    { prompt: "乙木日干 遇 卯", answer: "乙比肩", label: "乙木遇卯藏乙，為【乙比肩】", options: ["乙比肩", "甲劫財", "丁食神", "癸偏印"] },
+    { prompt: "乙木日干 遇 寅", answer: "甲劫財", label: "乙木遇寅藏甲，為【甲劫財】", options: ["乙比肩", "甲劫財", "丙傷官", "壬正印"] },
+    { prompt: "乙木日干 遇 巳午", answer: "丁丙食傷", label: "乙木遇巳午藏丁丙，為【丁丙食傷】", options: ["丁丙食傷", "己戊財星", "辛庚官殺", "癸壬印星"] },
+    { prompt: "乙木日干 遇 辰戌丑未", answer: "己戊財星", label: "乙木遇辰戌丑未藏己戊，為【己戊財星】", options: ["丁丙食傷", "己戊財星", "辛庚官殺", "癸壬印星"] },
+    { prompt: "乙木日干 遇 申酉", answer: "辛庚官殺", label: "乙木遇申酉藏辛庚，為【辛庚官殺】", options: ["丁丙食傷", "己戊財星", "辛庚官殺", "癸壬印星"] },
+    { prompt: "乙木日干 遇 亥子", answer: "癸壬印星", label: "乙木遇亥子藏癸壬，為【癸壬印星】", options: ["丁丙食傷", "己戊財星", "辛庚官殺", "癸壬印星"] },
+
+    { prompt: "丙火日干 遇 巳", answer: "丙比肩", label: "丙火遇巳藏丙，為【丙比肩】", options: ["丙比肩", "丁劫財", "戊食神", "甲偏印"] },
+    { prompt: "丙火日干 遇 午", answer: "丁劫財", label: "丙火遇午藏丁，為【丁劫財】", options: ["丙比肩", "丁劫財", "己傷官", "乙正印"] },
+    { prompt: "丙火日干 遇 辰戌丑未", answer: "戊己食傷", label: "丙火遇辰戌丑未藏戊己，為【戊己食傷】", options: ["戊己食傷", "庚辛財星", "壬癸官殺", "甲乙印星"] },
+    { prompt: "丙火日干 遇 申酉", answer: "庚辛財星", label: "丙火遇申酉藏庚辛，為【庚辛財星】", options: ["戊己食傷", "庚辛財星", "壬癸官殺", "甲乙印星"] },
+    { prompt: "丙火日干 遇 亥子", answer: "壬癸官殺", label: "丙火遇亥子藏壬癸，為【壬癸官殺】", options: ["戊己食傷", "庚辛財星", "壬癸官殺", "甲乙印星"] },
+    { prompt: "丙火日干 遇 寅卯", answer: "甲乙印星", label: "丙火遇寅卯藏甲乙，為【甲乙印星】", options: ["戊己食傷", "庚辛財星", "壬癸官殺", "甲乙印星"] },
+
+    { prompt: "丁火日干 遇 午", answer: "丁比肩", label: "丁火遇午藏丁，為【丁比肩】", options: ["丁比肩", "丙劫財", "己食神", "乙偏印"] },
+    { prompt: "丁火日干 遇 巳", answer: "丙劫財", label: "丁火遇巳藏丙，為【丙劫財】", options: ["丁比肩", "丙劫財", "戊傷官", "甲正印"] },
+    { prompt: "丁火日干 遇 辰戌丑未", answer: "己戊食傷", label: "丁火遇辰戌丑未藏己戊，為【己戊食傷】", options: ["己戊食傷", "辛庚財星", "癸壬官殺", "乙甲印星"] },
+    { prompt: "丁火日干 遇 申酉", answer: "辛庚財星", label: "丁火遇申酉藏辛庚，為【辛庚財星】", options: ["己戊食傷", "辛庚財星", "癸壬官殺", "乙甲印星"] },
+    { prompt: "丁火日干 遇 亥子", answer: "癸壬官殺", label: "丁火遇亥子藏癸壬，為【癸壬官殺】", options: ["己戊食傷", "辛庚財星", "癸壬官殺", "乙甲印星"] },
+    { prompt: "丁火日干 遇 寅卯", answer: "乙甲印星", label: "丁火遇寅卯藏乙甲，為【乙甲印星】", options: ["己戊食傷", "辛庚財星", "癸壬官殺", "乙甲印星"] },
+
+    { prompt: "戊土日干 遇 辰戌", answer: "戊比肩", label: "戊土遇辰戌藏戊，為【戊比肩】", options: ["戊比肩", "己劫財", "庚食神", "丙偏印"] },
+    { prompt: "戊土日干 遇 丑未", answer: "己劫財", label: "戊土遇丑未藏己，為【己劫財】", options: ["戊比肩", "己劫財", "辛傷官", "丁正印"] },
+    { prompt: "戊土日干 遇 申酉", answer: "庚辛食傷", label: "戊土遇申酉藏庚辛，為【庚辛食傷】", options: ["庚辛食傷", "壬癸財星", "甲乙官殺", "丙丁印星"] },
+    { prompt: "戊土日干 遇 亥子", answer: "壬癸財星", label: "戊土遇亥子藏壬癸，為【壬癸財星】", options: ["庚辛食傷", "壬癸財星", "甲乙官殺", "丙丁印星"] },
+    { prompt: "戊土日干 遇 寅卯", answer: "甲乙官殺", label: "戊土遇寅卯藏甲乙，為【甲乙官殺】", options: ["庚辛食傷", "壬癸財星", "甲乙官殺", "丙丁印星"] },
+    { prompt: "戊土日干 遇 巳午", answer: "丙丁印星", label: "戊土遇巳午藏丙丁，為【丙丁印星】", options: ["庚辛食傷", "壬癸財星", "甲乙官殺", "丙丁印星"] },
+
+    { prompt: "己土日干 遇 丑未", answer: "己比肩", label: "己土遇丑未藏己，為【己比肩】", options: ["己比肩", "戊劫財", "辛食神", "丁偏印"] },
+    { prompt: "己土日干 遇 辰戌", answer: "戊劫財", label: "己土遇辰戌藏戊，為【戊劫財】", options: ["己比肩", "戊劫財", "庚傷官", "丙正印"] },
+    { prompt: "己土日干 遇 申酉", answer: "辛庚食傷", label: "己土遇申酉藏辛庚，為【辛庚食傷】", options: ["辛庚食傷", "癸壬財星", "乙甲官殺", "丁丙印星"] },
+    { prompt: "己土日干 遇 亥子", answer: "癸壬財星", label: "己土遇亥子藏癸壬，為【癸壬財星】", options: ["辛庚食傷", "癸壬財星", "乙甲官殺", "丁丙印星"] },
+    { prompt: "己土日干 遇 寅卯", answer: "乙甲官殺", label: "己土遇寅卯藏乙甲，為【乙甲官殺】", options: ["辛庚食傷", "癸壬財星", "乙甲官殺", "丁丙印星"] },
+    { prompt: "己土日干 遇 巳午", answer: "丁丙印星", label: "己土遇巳午藏丁丙，為【丁丙印星】", options: ["辛庚食傷", "癸壬財星", "乙甲官殺", "丁丙印星"] },
+
+    { prompt: "庚金日干 遇 申", answer: "庚比肩", label: "庚金遇申藏庚，為【庚比肩】", options: ["庚比肩", "辛劫財", "壬食神", "戊偏印"] },
+    { prompt: "庚金日干 遇 酉", answer: "辛劫財", label: "庚金遇酉藏辛，為【辛劫財】", options: ["庚比肩", "辛劫財", "癸傷官", "己正印"] },
+    { prompt: "庚金日干 遇 亥子", answer: "壬癸食傷", label: "庚金遇亥子藏壬癸，為【壬癸食傷】", options: ["壬癸食傷", "甲乙財星", "丙丁官殺", "戊己印星"] },
+    { prompt: "庚金日干 遇 寅卯", answer: "甲乙財星", label: "庚金遇寅卯藏甲乙，為【甲乙財星】", options: ["壬癸食傷", "甲乙財星", "丙丁官殺", "戊己印星"] },
+    { prompt: "庚金日干 遇 巳午", answer: "丙丁官殺", label: "庚金遇巳午藏丙丁，為【丙丁官殺】", options: ["壬癸食傷", "甲乙財星", "丙丁官殺", "戊己印星"] },
+    { prompt: "庚金日干 遇 辰戌丑未", answer: "戊己印星", label: "庚金遇辰戌丑未藏戊己，為【戊己印星】", options: ["壬癸食傷", "甲乙財星", "丙丁官殺", "戊己印星"] },
+
+    { prompt: "辛金日干 遇 酉", answer: "辛比肩", label: "辛金遇酉藏辛，為【辛比肩】", options: ["辛比肩", "庚劫財", "癸食神", "己偏印"] },
+    { prompt: "辛金日干 遇 申", answer: "庚劫財", label: "辛金遇申藏庚，為【庚劫財】", options: ["辛比肩", "庚劫財", "壬傷官", "戊正印"] },
+    { prompt: "辛金日干 遇 亥子", answer: "癸壬食傷", label: "辛金遇亥子藏癸壬，為【癸壬食傷】", options: ["癸壬食傷", "乙甲財星", "丁丙官殺", "己戊印星"] },
+    { prompt: "辛金日干 遇 寅卯", answer: "乙甲財星", label: "辛金遇寅卯藏乙甲，為【乙甲財星】", options: ["癸壬食傷", "乙甲財星", "丁丙官殺", "己戊印星"] },
+    { prompt: "辛金日干 遇 巳午", answer: "丁丙官殺", label: "辛金遇巳午藏丁丙，為【丁丙官殺】", options: ["癸壬食傷", "乙甲財星", "丁丙官殺", "己戊印星"] },
+    { prompt: "辛金日干 遇 辰戌丑未", answer: "己戊印星", label: "辛金遇辰戌丑未藏己戊，為【己戊印星】", options: ["癸壬食傷", "乙甲財星", "丁丙官殺", "己戊印星"] },
+
+    { prompt: "壬水日干 遇 亥", answer: "壬比肩", label: "壬水遇亥藏壬，為【壬比肩】", options: ["壬比肩", "癸劫財", "甲食神", "庚偏印"] },
+    { prompt: "壬水日干 遇 子", answer: "癸劫財", label: "壬水遇子藏癸，為【癸劫財】", options: ["壬比肩", "癸劫財", "乙傷官", "辛正印"] },
+    { prompt: "壬水日干 遇 寅卯", answer: "甲乙食傷", label: "壬水遇寅卯藏甲乙，為【甲乙食傷】", options: ["甲乙食傷", "丙丁財星", "戊己官殺", "申酉印星"] },
+    { prompt: "壬水日干 遇 巳午", answer: "丙丁財星", label: "壬水遇巳午藏丙丁，為【丙丁財星】", options: ["甲乙食傷", "丙丁財星", "戊己官殺", "申酉印星"] },
+    { prompt: "壬水日干 遇 辰戌丑未", answer: "戊己官殺", label: "壬水遇辰戌丑未藏戊己，為【戊己官殺】", options: ["甲乙食傷", "丙丁財星", "戊己官殺", "申酉印星"] },
+    { prompt: "壬水日干 遇 申酉", answer: "申酉印星", label: "壬水遇申酉藏庚辛，為【申酉印星】", options: ["甲乙食傷", "丙丁財星", "戊己官殺", "申酉印星"] }
+  ];
+
+  let activeData = liuheData;
   let currentQuestion = null;
+  let currentStep = 1;
   let score = 0;
-  let total = 0;
   let answered = false;
+  let wrongHistory = [];
 
-  function switchMode(mode) {
-    currentMode = mode;
-    document.getElementById("mode1Btn").classList.toggle("active", mode === 'combinations');
-    document.getElementById("mode2Btn").classList.toggle("active", mode === 'tenGods');
+  function switchCategory(cat) {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    if (cat === 'liuhe') { activeData = liuheData; document.getElementById('m1').classList.add('active'); }
+    if (cat === 'liuchong') { activeData = liuchongData; document.getElementById('m2').classList.add('active'); }
+    if (cat === 'sanhe') { activeData = sanheData; document.getElementById('m3').classList.add('active'); }
+    if (cat === 'sanhui') { activeData = sanhuiData; document.getElementById('m4').classList.add('active'); }
+    if (cat === 'tengods') { activeData = tengodsData; document.getElementById('m5').classList.add('active'); }
     
-    activeDataSet = (mode === 'combinations') ? branchCombinations : tenGodsQuestions;
+    restartRound();
+  }
+
+  function restartRound() {
+    currentStep = 1;
     score = 0;
-    total = 0;
+    wrongHistory = [];
+    document.getElementById("quizContent").style.display = "block";
+    document.getElementById("summaryArea").style.display = "none";
     document.getElementById("scoreCount").innerText = score;
-    document.getElementById("totalCount").innerText = total;
     loadQuestion();
   }
 
@@ -276,16 +318,15 @@
     answered = false;
     document.getElementById("feedback").innerText = "";
     document.getElementById("feedback").className = "feedback";
-    document.getElementById("nextBtn").style.display = "none";
+    document.getElementById("actionBtn").style.display = "none";
+    document.getElementById("currentNum").innerText = currentStep;
 
-    // Random selection
-    const randomIndex = Math.floor(Math.random() * activeDataSet.length);
-    currentQuestion = activeDataSet[randomIndex];
+    const randomIndex = Math.floor(Math.random() * activeData.length);
+    currentQuestion = activeData[randomIndex];
 
     document.getElementById("promptDisplay").innerText = currentQuestion.prompt;
-    document.getElementById("hintDisplay").innerText = currentQuestion.hint || "根據日干與地支，對照其本氣十神：";
+    document.getElementById("hintDisplay").innerText = currentQuestion.hint || "請選擇對應的正確答案：";
 
-    // Render option buttons
     const container = document.getElementById("optionsContainer");
     container.innerHTML = "";
 
@@ -301,11 +342,9 @@
   function checkAnswer(selectedOption, btnElement) {
     if (answered) return;
     answered = true;
-    total++;
 
     const feedbackEl = document.getElementById("feedback");
     const optionBtns = document.querySelectorAll(".option-btn");
-
     optionBtns.forEach(btn => btn.style.pointerEvents = "none");
 
     if (selectedOption === currentQuestion.answer) {
@@ -315,6 +354,7 @@
       btnElement.style.backgroundColor = "#e8f5e9";
       btnElement.style.borderColor = "#2e7d32";
     } else {
+      wrongHistory.push({ question: currentQuestion.prompt, selected: selectedOption, correct: currentQuestion.label });
       feedbackEl.innerText = `不正確。 ${currentQuestion.label}`;
       feedbackEl.className = "feedback incorrect";
       btnElement.style.backgroundColor = "#ffebee";
@@ -322,15 +362,40 @@
     }
 
     document.getElementById("scoreCount").innerText = score;
-    document.getElementById("totalCount").innerText = total;
-    document.getElementById("nextBtn").style.display = "block";
+    document.getElementById("actionBtn").style.display = "block";
+    document.getElementById("actionBtn").innerText = currentStep < 10 ? "下一題" : "查看本輪成績";
   }
 
-  function nextQuestion() {
-    loadQuestion();
+  function handleAction() {
+    if (currentStep < 10) {
+      currentStep++;
+      loadQuestion();
+    } else {
+      showSummary();
+    }
   }
 
-  // Initial setup
+  function showSummary() {
+    document.getElementById("quizContent").style.display = "none";
+    document.getElementById("summaryArea").style.display = "block";
+
+    let html = `<h3>本輪測驗結束！</h3>`;
+    html += `<p>得分：<strong>${score}</strong> / 10</p><br>`;
+
+    if (wrongHistory.length === 0) {
+      html += `<p style="color: #2e7d32; font-weight: bold;">太棒了！本輪完全正確！</p>`;
+    } else {
+      html += `<p style="font-weight: bold; color: #c62828;">錯題檢討：</p><ul>`;
+      wrongHistory.forEach(item => {
+        html += `<li><strong>${item.question}</strong>：你選了「${item.selected}」，正確解答為【${item.correct}】</li>`;
+      });
+      html += `</ul>`;
+    }
+
+    document.getElementById("summaryContent").innerHTML = html;
+  }
+
+  // Initialize on load
   loadQuestion();
 </script>
 
