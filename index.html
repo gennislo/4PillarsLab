@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八字命理溫習神器 v5.5</title>
+    <title>八字命理溫習神器 v6.0</title>
     <style>
         :root {
             --primary: #4a6fa5;
@@ -374,7 +374,8 @@
                 <label class="checkbox-label"><input type="checkbox" id="area-branch-clash" checked> 地支六沖</label>
                 <label class="checkbox-label"><input type="checkbox" id="area-branch-sanhe" checked> 地支三合局</label>
                 <label class="checkbox-label"><input type="checkbox" id="area-branch-sanhui" checked> 地支三會 (會方)</label>
-                <label class="checkbox-label" style="grid-column: span 2;"><input type="checkbox" id="area-tengod" checked> 十神推算 (對照表資料庫)</label>
+                <label class="checkbox-label" style="grid-column: span 2;"><input type="checkbox" id="area-tengod" checked> 天干十神推算 (對照表)</label>
+                <label class="checkbox-label" style="grid-column: span 2;"><input type="checkbox" id="area-branch-tengod" checked> 地支本氣十神推算 (新功能)</label>
             </div>
         </div>
 
@@ -489,9 +490,25 @@ const stems = [
 const stemCombines = { '甲':'己', '己':'甲', '乙':'庚', '庚':'乙', '丙':'辛', '辛':'丙', '丁':'壬', '壬':'丁', '戊':'癸', '癸':'戊' };
 
 const branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+// Mapping Earthly Branches to Primary Hidden Stems (地支本氣)
+const branchMainStems = [
+    { name: '子', mainStem: '癸', element: '水', polarity: '陰' },
+    { name: '丑', mainStem: '己', element: '土', polarity: '陰' },
+    { name: '寅', mainStem: '甲', element: '木', polarity: '陽' },
+    { name: '卯', mainStem: '乙', element: '木', polarity: '陰' },
+    { name: '辰', mainStem: '戊', element: '土', polarity: '陽' },
+    { name: '巳', mainStem: '丙', element: '火', polarity: '陽' },
+    { name: '午', mainStem: '丁', element: '火', polarity: '陰' },
+    { name: '未', mainStem: '己', element: '土', polarity: '陰' },
+    { name: '申', mainStem: '庚', element: '金', polarity: '陽' },
+    { name: '酉', mainStem: '辛', element: '金', polarity: '陰' },
+    { name: '戌', mainStem: '戊', element: '土', polarity: '陽' },
+    { name: '亥', mainStem: '壬', element: '水', polarity: '陽' }
+];
+
 const branchClashes = { '子':'午', '午':'子', '丑':'未', '未':'丑', '寅':'申', '申':'寅', '卯':'酉', '酉':'卯', '辰':'戌', '戌':'辰', '巳':'亥', '亥':'巳' };
 
-// 午未合化火
 const branchSixCombines = [
     { b1: '子', b2: '丑', transformed: '土' },
     { b1: '寅', b2: '亥', transformed: '木' },
@@ -515,7 +532,7 @@ const branchSanHui = [
     { trio: '亥、子、丑', direction: '北方', element: '水局' }
 ];
 
-// --- 🌟 Data Bank: 各日主十神對照表 (Exact Lookup Table Data) ---
+// --- Data Bank: 各日主十神對照表 ---
 const tenGodDataBank = {
     '甲木': { '甲': '比肩', '乙': '劫財', '丙': '食神', '丁': '傷官', '戊': '偏財', '己': '正財', '庚': '七殺', '辛': '正官', '壬': '偏印', '癸': '正印' },
     '乙木': { '甲': '劫財', '乙': '比肩', '丙': '傷官', '丁': '食神', '戊': '正財', '己': '偏財', '庚': '正官', '辛': '七殺', '壬': '正印', '癸': '偏印' },
@@ -528,6 +545,8 @@ const tenGodDataBank = {
     '壬水': { '甲': '食神', '乙': '傷官', '丙': '偏財', '丁': '正財', '戊': '七殺', '己': '正官', '庚': '偏印', '辛': '正印', '壬': '比肩', '癸': '劫財' },
     '癸水': { '甲': '傷官', '乙': '食神', '丙': '正財', '丁': '偏財', '戊': '正官', '己': '七殺', '庚': '正印', '辛': '偏印', '壬': '劫財', '癸': '比肩' }
 };
+
+const allTenGods = ['比肩', '劫財', '食神', '傷官', '偏財', '正財', '七殺', '正官', '偏印', '正印'];
 
 // --- Question Generator Helper Functions ---
 
@@ -589,12 +608,6 @@ function getQuestionsForArea(area, difficulty) {
                 wrong: branchSanHe.filter(b => b.trio !== item.trio).map(b => b.element),
                 explanation: `地支三合局：申子辰水局、亥卯未木局、寅午戌火局、巳酉丑金局。`
             });
-            pool.push({
-                question: `地支三合中，合化為【${item.element}】的三個地支（生、旺、墓三位）是哪一組？`,
-                correct: item.trio,
-                wrong: branchSanHe.filter(b => b.trio !== item.trio).map(b => b.trio),
-                explanation: `地支三合局：申子辰（水）、亥卯未（木）、寅午戌（火）、巳酉丑（金）。`
-            });
         });
     } else if (area === 'branch-sanhui') {
         branchSanHui.forEach(item => {
@@ -604,17 +617,9 @@ function getQuestionsForArea(area, difficulty) {
                 wrong: branchSanHui.filter(b => b.trio !== item.trio).map(b => `${b.direction}${b.element}`),
                 explanation: `地支三會方：寅卯辰（東方木）、巳午未（南方火）、申酉戌（西方金）、亥子丑（北方水）。`
             });
-            pool.push({
-                question: `地支三會中，代表【${item.direction}${item.element}】的三個特定地支是哪一組？`,
-                correct: item.trio,
-                wrong: branchSanHui.filter(b => b.trio !== item.trio).map(b => b.trio),
-                explanation: `地支三會方：寅卯辰（東方木）、巳午未（南方火）、申酉戌（西方金）、亥子丑（北方水）。`
-            });
         });
     } else if (area === 'tengod') {
-        const allTenGods = ['比肩', '劫財', '食神', '傷官', '偏財', '正財', '七殺', '正官', '偏印', '正印'];
-        
-        // Generate questions directly querying the tenGodDataBank
+        // Heavenly Stems Ten Gods Questions
         stems.forEach(dayMaster => {
             stems.forEach(targetStem => {
                 let dmKey = `${dayMaster.name}${dayMaster.element}`;
@@ -628,6 +633,25 @@ function getQuestionsForArea(area, difficulty) {
                     correct: correct,
                     wrong: shuffle(allTenGods.filter(g => g !== correct)).slice(0, 3),
                     explanation: `根據《各日主十神對照表》：日主【${dmKey}】遇天干【${targetStem.name}】對應之十神為【${correct}】。`
+                });
+            });
+        });
+    } else if (area === 'branch-tengod') {
+        // ✨ NEW: Earthly Branches Ten Gods Questions (Based on Main Hidden Stem)
+        stems.forEach(dayMaster => {
+            branchMainStems.forEach(targetBranch => {
+                let dmKey = `${dayMaster.name}${dayMaster.element}`;
+                let mainStemName = targetBranch.mainStem;
+                let correct = tenGodDataBank[dmKey][mainStemName];
+
+                let dmHint = (difficulty === 'easy') ? `（${dayMaster.polarity}${dayMaster.element}）` : '';
+                let branchHint = (difficulty === 'easy') ? `（${targetBranch.polarity}${targetBranch.element}）` : '';
+
+                pool.push({
+                    question: `若日主為【${dayMaster.name}】${dmHint}，遇上地支【${targetBranch.name}】${branchHint}，對應十神為何？`,
+                    correct: correct,
+                    wrong: shuffle(allTenGods.filter(g => g !== correct)).slice(0, 3),
+                    explanation: `地支【${targetBranch.name}】的本氣天干為【${mainStemName}】。查對照表：日主【${dmKey}】遇【${mainStemName}】對應十神為【${correct}】。`
                 });
             });
         });
@@ -692,6 +716,7 @@ function startConfiguredQuiz() {
     if (document.getElementById('area-branch-sanhe').checked) selectedAreas.push('branch-sanhe');
     if (document.getElementById('area-branch-sanhui').checked) selectedAreas.push('branch-sanhui');
     if (document.getElementById('area-tengod').checked) selectedAreas.push('tengod');
+    if (document.getElementById('area-branch-tengod').checked) selectedAreas.push('branch-tengod');
 
     if (selectedAreas.length === 0) {
         alert('請至少選擇一個溫習範疇！');
